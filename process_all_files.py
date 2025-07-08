@@ -251,14 +251,18 @@ def main():
     pasta_resultados = "resultados_processados"
     Path(pasta_resultados).mkdir(exist_ok=True)
     
-    # Encontrar todos os arquivos CSV no diretório atual
-    arquivos_csv = glob.glob("*.csv")
+    # pasta de dados originais
+    pasta_dados_originais = "dados_originais"
+    Path(pasta_dados_originais).mkdir(exist_ok=True)
+    
+    # Encontrar todos os arquivos CSV na pasta de dados originais
+    arquivos_csv = glob.glob(os.path.join(pasta_dados_originais, "*.csv"))
     
     if not arquivos_csv:
-        logging.warning("Nenhum arquivo CSV encontrado no diretório atual!")
+        logging.warning(f"Nenhum arquivo CSV encontrado na pasta '{pasta_dados_originais}'!")
         return
     
-    logging.info(f"Encontrados {len(arquivos_csv)} arquivos CSV para processar")
+    logging.info(f"Encontrados {len(arquivos_csv)} arquivos CSV para processar na pasta '{pasta_dados_originais}'")
     
     # Processar cada arquivo
     for arquivo in arquivos_csv:

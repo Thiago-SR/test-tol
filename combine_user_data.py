@@ -82,16 +82,8 @@ def add_prefix_to_columns(df, prefix):
     Returns:
         DataFrame com colunas renomeadas
     """
-    # Colunas que NÃO devem receber prefixo (colunas básicas)
-    basic_columns = ['sub', 'trial', 'size']
-    
-    # Renomeia as colunas que não são básicas
-    new_columns = {}
-    for col in df.columns:
-        if col in basic_columns:
-            new_columns[col] = col
-        else:
-            new_columns[col] = f"{prefix}{col}"
+    # Adiciona prefixo a todas as colunas
+    new_columns = {col: f"{prefix}{col}" for col in df.columns}
     
     df_renamed = df.rename(columns=new_columns)
     return df_renamed
@@ -149,9 +141,6 @@ def combine_user_files(user_id, files_dict):
             for col in df.columns:
                 if col not in combined_df.columns:
                     combined_df[col] = df[col]
-                else:
-                    # Se a coluna já existe, adiciona com sufixo
-                    combined_df[f"{col}_test{i}"] = df[col]
     
     # Converte colunas numéricas finais para int
     combined_df = convert_numeric_columns_to_int(combined_df)
@@ -185,11 +174,6 @@ def get_column_descriptions(columns):
         for prefix in ['T0_', 'T1_', 'T2_']:
             if col.startswith(prefix):
                 base = col[len(prefix):]
-                return desc_map.get(base, base)
-        # Para colunas duplicadas (ex: sub_test1)
-        for suf in ['_test1', '_test2']:
-            if col.endswith(suf):
-                base = col[:-len(suf)]
                 return desc_map.get(base, base)
         return desc_map.get(col, col)
     return [desc(col) for col in columns]
