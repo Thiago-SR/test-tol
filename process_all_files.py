@@ -4,6 +4,8 @@ import copy
 import logging
 from typing import List, Tuple, Set, Optional
 import os
+import glob
+from pathlib import Path
 
 # Configuração de logging
 logging.basicConfig(
@@ -200,7 +202,7 @@ def processar_arquivo(caminho_entrada: str, caminho_saida: str) -> None:
     try:
         df = pd.read_csv(caminho_entrada, sep=',')
     except Exception as e:
-        logging.error(f"Erro ao ler arquivo de entrada: {e}")
+        logging.error(f"Erro ao ler arquivo de entrada {caminho_entrada}: {e}")
         raise
 
     col_minimos = []
@@ -213,12 +215,12 @@ def processar_arquivo(caminho_entrada: str, caminho_saida: str) -> None:
             if row['step'] == 0:
                 estado_inicial = string_para_estado(row['current'])
                 estado_final = string_para_estado(row['end'])
-                logging.info(f"Estado inicial: {estado_inicial}")
-                logging.info(f"Estado final: {estado_final}")
+                logging.info(f"Arquivo {os.path.basename(caminho_entrada)} - Estado inicial: {estado_inicial}")
+                logging.info(f"Arquivo {os.path.basename(caminho_entrada)} - Estado final: {estado_final}")
 
             if row['done'] == 1:
                 min_movs = movimentos_minimos(estado_inicial, estado_final, altura_max=row['size'])
-                logging.info(f"Movimentos mínimos: {min_movs}")
+                logging.info(f"Arquivo {os.path.basename(caminho_entrada)} - Movimentos mínimos: {min_movs}")
                 pontuacao = calcular_pontuacao(row, min_movs)
             else:
                 min_movs = 0
@@ -228,7 +230,7 @@ def processar_arquivo(caminho_entrada: str, caminho_saida: str) -> None:
             col_pontuacao.append(pontuacao)
             
         except Exception as e:
-            logging.error(f"Erro ao processar linha {idx}: {e}")
+            logging.error(f"Erro ao processar linha {idx} do arquivo {caminho_entrada}: {e}")
             col_minimos.append(-1)
             col_pontuacao.append(0)
 
@@ -237,21 +239,46 @@ def processar_arquivo(caminho_entrada: str, caminho_saida: str) -> None:
 
     try:
         df.to_csv(caminho_saida, index=False)
-        logging.info("Pontuação acumulada e movimentos mínimos calculados e salvos com sucesso!")
+        logging.info(f"Arquivo {os.path.basename(caminho_saida)} processado com sucesso!")
     except Exception as e:
-        logging.error(f"Erro ao salvar arquivo de saída: {e}")
+        logging.error(f"Erro ao salvar arquivo de saída {caminho_saida}: {e}")
         raise
 
 def main():
-    """Função principal do programa."""
-    caminho_entrada = 'dados2.xls'
-    caminho_saida = 'tabela2_com_pontuacao_e_minimos.csv'
+    """Função principal que processa todos os arquivos CSV."""
     
-    try:
-        processar_arquivo(caminho_entrada, caminho_saida)
-    except Exception as e:
-        logging.error(f"Erro durante a execução: {e}")
-        raise
+    # Criar pasta de resultados se não existir
+    pasta_resultados = "resultados_processados"
+    Path(pasta_resultados).mkdir(exist_ok=True)
+    
+    # pasta de dados originais
+    pasta_dados_originais = "dados_originais"
+    Path(pasta_dados_originais).mkdir(exist_ok=True)
+    
+    # Encontrar todos os arquivos CSV na pasta de dados originais
+    arquivos_csv = glob.glob(os.path.join(pasta_dados_originais, "*.csv"))
+    
+    if not arquivos_csv:
+        logging.warning(f"Nenhum arquivo CSV encontrado na pasta '{pasta_dados_originais}'!")
+        return
+    
+    logging.info(f"Encontrados {len(arquivos_csv)} arquivos CSV para processar na pasta '{pasta_dados_originais}'")
+    
+    # Processar cada arquivo
+    for arquivo in arquivos_csv:
+        try:
+            nome_arquivo = os.path.basename(arquivo)
+            # Manter o nome original do arquivo
+            caminho_saida = os.path.join(pasta_resultados, nome_arquivo)
+            
+            logging.info(f"Processando arquivo: {nome_arquivo}")
+            processar_arquivo(arquivo, caminho_saida)
+            
+        except Exception as e:
+            logging.error(f"Erro ao processar arquivo {arquivo}: {e}")
+            continue
+    
+    logging.info(f"Processamento concluído! Resultados salvos na pasta '{pasta_resultados}'")
 
 if __name__ == "__main__":
-    main()
+    main() 
