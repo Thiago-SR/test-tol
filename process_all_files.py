@@ -238,7 +238,8 @@ def processar_arquivo(caminho_entrada: str, caminho_saida: str) -> None:
     df['pontuacao_acumulada'] = pd.Series(col_pontuacao).cumsum()
 
     try:
-        df.to_csv(caminho_saida, index=False)
+        # Salva o DataFrame garantindo que colunas numéricas sejam salvas como números
+        df.to_csv(caminho_saida, index=False, float_format='%.0f')
         logging.info(f"Arquivo {os.path.basename(caminho_saida)} processado com sucesso!")
     except Exception as e:
         logging.error(f"Erro ao salvar arquivo de saída {caminho_saida}: {e}")

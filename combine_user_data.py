@@ -235,7 +235,8 @@ def main():
             descriptions = get_column_descriptions(combined_df.columns)
             with open(output_file, 'w', encoding='utf-8', newline='') as f:
                 f.write(','.join(descriptions) + '\n')
-                combined_df.to_csv(f, index=False)
+                # Salva o DataFrame garantindo que colunas numéricas sejam salvas como números
+                combined_df.to_csv(f, index=False, float_format='%.0f')
             logging.info(f"Arquivo salvo: {output_file}")
             
             # Mostrar informações sobre as colunas
