@@ -1,0 +1,4 @@
+test_type,total_movements,total_time_ms,completed_trials,movements_per_trial,avg_time_per_trial,time_per_movement,num_attempts,total_min_movements,movement_efficiency
+T0,162,350514,24,6.75,14604.75,2163.67,0,126,0.78
+T1,144,307478,24,6.0,12811.58,2135.26,0,131,0.91
+T2,136,309570,24,5.67,12898.75,2276.25,0,120,0.88
