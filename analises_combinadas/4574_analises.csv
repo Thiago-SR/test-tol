@@ -1,4 +1,0 @@
-teste,total_movimentos,tempo_total_ms,trials_completos,movimentos_por_trial,tempo_medio_por_trial,tempo_por_movimento,num_tentativas,total_movimentos_minimos,eficiencia_movimentos
-T0,139,218931,24,5.79,9122.12,1575.04,0,122,0.88
-T1,139,213586,23,6.04,9286.35,1536.59,0,122,0.88
-T2,139,245348,23,6.04,10667.3,1765.09,0,125,0.9
