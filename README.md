@@ -4,9 +4,79 @@
 
 Este projeto implementa um sistema completo de processamento e análise de dados de testes cognitivos baseados no paradigma da Torre de Londres (Tower of London - ToL). O sistema processa dados brutos de testes PEBL (Psychology Experiment Building Language) e gera análises estatísticas detalhadas para avaliação de funções executivas.
 
+## Nova Estrutura Organizada
+
+O projeto foi reorganizado para melhor manutenibilidade e execução:
+
+```
+test-tol/
+├── dados_originais/          # Dados brutos dos testes
+├── 01_dados_processados/     # Dados processados com pontuações
+├── 02_dados_combinados/      # Dados combinados por usuário
+├── 03_analises_combinadas/   # Análises dos dados combinados
+├── scripts/                  # Todos os scripts de processamento
+│   ├── process_all_files.py      # Processamento de dados originais
+│   ├── combine_user_data.py      # Combinação de dados por usuário
+│   ├── analyze_combined_data.py  # Análise de dados combinados
+│   └── anova.py                  # Análise estatística ANOVA
+├── run_pipeline.py          # Script principal para executar todo o pipeline
+└── README.md
+```
+
+## Como Usar
+
+### Execução Automática (Recomendado)
+
+Execute o script principal que executa todo o pipeline automaticamente:
+
+```bash
+python run_pipeline.py
+```
+
+Este script irá executar todos os passos na ordem correta:
+1. **Processamento de dados originais** - Calcula pontuações baseadas em movimentos mínimos
+2. **Combinação de dados por usuário** - Combina dados dos três testes (T0, T1, T2) para cada usuário
+3. **Análise de dados combinados** - Analisa os dados combinados de cada usuário
+4. **Análise estatística ANOVA** - Realiza ANOVA de medidas repetidas para identificar diferenças significativas
+
+### Execução Manual (Passo a Passo)
+
+Se preferir executar cada script individualmente:
+
+#### 1. Preparação dos Dados
+
+Coloque os arquivos CSV dos testes na pasta `dados_originais/`. Os arquivos devem seguir o padrão:
+- `T0_[ID]_Tol.csv` - Teste inicial
+- `T1_[ID]_Tol.csv` - Teste após intervenção
+- `T2_[ID]_Tol.csv` - Teste final
+
+#### 2. Processamento de Dados Originais
+
+```bash
+python scripts/process_all_files.py
+```
+
+#### 3. Combinação de Dados por Usuário
+
+```bash
+python scripts/combine_user_data.py
+```
+
+#### 4. Análise dos Dados Combinados
+
+```bash
+python scripts/analyze_combined_data.py
+```
+
+#### 4. Análise Estatística ANOVA
+
+```bash
+python scripts/anova.py
+```
+
 ## Funcionalidades Principais
 
-### 1. Processamento de Dados Brutos (`process_all_files.py`)
+### 1. Processamento de Dados Brutos (`scripts/process_all_files.py`)
 - **Objetivo**: Processa arquivos CSV brutos dos testes PEBL
 - **Funcionalidades**:
   - Calcula o número mínimo de movimentos necessários para resolver cada puzzle
@@ -14,136 +84,158 @@ Este projeto implementa um sistema completo de processamento e análise de dados
   - Calcula pontuação baseada na eficiência dos movimentos
   - Adiciona colunas de análise: `movimentos_minimos` e `pontuacao_acumulada`
 - **Algoritmo**: Utiliza busca em largura para encontrar o caminho mais curto entre estados iniciais e finais
-- **Saída**: Arquivos processados na pasta `resultados_processados/`
+- **Saída**: Arquivos processados na pasta `01_dados_processados/`
 
-### 2. Combinação de Dados (`combine_user_data.py`)
+### 2. Combinação de Dados (`scripts/combine_user_data.py`)
 - **Objetivo**: Combina dados dos três testes (T0, T1, T2) de cada participante
 - **Funcionalidades**:
   - Agrupa arquivos por ID do participante
   - Adiciona prefixos às colunas (T0_, T1_, T2_) para identificação
   - Converte tipos de dados apropriados
   - Adiciona descrições das colunas para facilitar interpretação
-- **Saída**: Arquivos combinados na pasta `dados_combinados/`
+- **Saída**: Arquivos combinados na pasta `02_dados_combinados/`
 
-### 3. Análise de Resultados Individuais (`analyze_outcomes.py`)
-- **Objetivo**: Analisa dados individuais de cada teste
-- **Métricas Calculadas**:
-  - Total de movimentos realizados
-  - Tempo total de execução
-  - Número de trials completados
-  - Movimentos por trial
-  - Tempo médio por trial
-  - Tempo por movimento
-  - Número de tentativas
-  - Total de movimentos mínimos
-  - Eficiência dos movimentos
-- **Saída**: Arquivos de análise na pasta `analises_resultados/`
-
-### 4. Análise de Dados Combinados (`analyze_combined_data.py`)
+### 3. Análise de Dados Combinados (`scripts/analyze_combined_data.py`)
 - **Objetivo**: Analisa dados combinados dos três testes
 - **Funcionalidades**:
   - Processa arquivos combinados com prefixos T0_, T1_, T2_
   - Calcula as mesmas métricas para cada teste
   - Permite comparação entre diferentes momentos de teste
-- **Saída**: Arquivos de análise na pasta `analises_combinadas/`
+- **Saída**: Arquivos de análise na pasta `03_analises_combinadas/`
 
-## Estrutura de Dados
-
-### Dados Originais (`dados_originais/`)
-Arquivos CSV com formato PEBL contendo:
-- `sub`: Identificador do participante
-- `trial`: Número do trial
-- `size`: Tamanho do puzzle (3, 4, 5 pinos)
-- `current`: Estado atual dos pinos (formato `|A|B|C|`)
-- `end`: Estado objetivo dos pinos
-- `step`: Número do passo atual
-- `reset`: Indicador de reinício
-- `tries`: Número de tentativas
-- `score`: Pontuação
-- `abstime`: Tempo absoluto em milissegundos
-- `trialtime`: Tempo do trial em milissegundos
-- `clicktime`: Tempo do clique em milissegundos
-- `done`: Indicador de conclusão (1 = completo, 0 = incompleto)
-
-### Dados Processados (`resultados_processados/`)
-Arquivos originais enriquecidos com:
-- `movimentos_minimos`: Número mínimo de movimentos calculado
-- `pontuacao_acumulada`: Pontuação acumulada baseada na eficiência
-
-### Dados Combinados (`dados_combinados/`)
-Arquivos com dados dos três testes combinados, com colunas prefixadas:
-- `T0_*`: Dados do primeiro teste
-- `T1_*`: Dados do segundo teste  
-- `T2_*`: Dados do terceiro teste
-
-### Análises (`analises_resultados/` e `analises_combinadas/`)
-Arquivos CSV com métricas calculadas para cada participante e teste.
+### 4. Análise Estatística ANOVA (`scripts/anova.py`)
+- **Objetivo**: Realiza ANOVA de medidas repetidas para identificar diferenças significativas entre os testes
+- **Funcionalidades**:
+  - Analisa todas as variáveis com dados de T0, T1, T2
+  - Calcula estatísticas F, p-valor e tamanho de efeito (η²)
+  - Identifica variáveis com diferenças significativas
+  - Gera relatório em Excel com resultados detalhados
+- **Dependências**: pandas, pingouin, numpy, openpyxl
+- **Saída**: Arquivo Excel `resultados_anova_medidas_repetidas.xlsx`
 
 ## Métricas Calculadas
 
-### 1. Eficiência de Movimentos
-- **Movimentos por Trial**: Total de movimentos ÷ Trials completos
-- **Eficiência**: Movimentos mínimos ÷ Movimentos realizados
-- **Tentativas**: Número de trials com múltiplas tentativas
+Para cada teste, são calculadas as seguintes métricas:
 
-### 2. Métricas Temporais
-- **Tempo Total**: Soma dos tempos de trials completos
-- **Tempo Médio por Trial**: Tempo total ÷ Trials completos
-- **Tempo por Movimento**: Tempo total ÷ Total de movimentos
+1. **Total de movimentos**: Número total de movimentos realizados
+2. **Tempo total (ms)**: Tempo total gasto nos testes completados
+3. **Trials completos**: Número de trials concluídos com sucesso
+4. **Movimentos por trial**: Média de movimentos por trial
+5. **Tempo médio por trial**: Tempo médio gasto por trial
+6. **Tempo por movimento**: Tempo médio por movimento
+7. **Número de tentativas**: Número de trials que precisaram de múltiplas tentativas
+8. **Total movimentos mínimos**: Soma dos movimentos mínimos necessários
+9. **Eficiência de movimentos**: Razão entre movimentos mínimos e totais
 
-### 3. Indicadores de Performance
-- **Trials Completos**: Número de puzzles resolvidos com sucesso
-- **Pontuação Acumulada**: Baseada na diferença entre movimentos realizados e mínimos
+## Dependências
 
-## Como Executar
+- Python 3.7+
+- pandas
+- pingouin (para ANOVA)
+- numpy
+- openpyxl (para arquivos Excel)
+- pathlib
+- logging
 
-### Pré-requisitos
+## Estrutura dos Dados
+
+### Arquivos de Entrada
+Os arquivos CSV devem conter as seguintes colunas:
+- `sub`: ID do teste
+- `trial`: Número do trial
+- `size`: Tamanho do problema
+- `current`: Estado atual dos pinos
+- `end`: Estado objetivo dos pinos
+- `step`: Número de passos realizados
+- `reset`: Indicador de reinício
+- `tries`: Número de tentativas
+- `score`: Pontuação
+- `abstime`: Tempo absoluto
+- `trialtime`: Tempo do trial
+- `clicktime`: Tempo de clique
+- `done`: Indicador de conclusão (1 = sucesso, 0 = falha)
+
+### Arquivos de Saída
+Os arquivos processados incluem colunas adicionais:
+- `movimentos_minimos`: Número mínimo de movimentos necessários
+- `pontuacao_acumulada`: Pontuação acumulada baseada na eficiência
+
+## Logs e Monitoramento
+
+### Logs Automáticos
+O script principal (`run_pipeline.py`) gera:
+- Log detalhado em arquivo `pipeline_execution.log`
+- Saída em tempo real no console
+- Resumo final da execução
+- Tempo total de processamento
+
+### Logs Individuais
+Cada script gera logs detalhados incluindo:
+- Informações sobre o processamento de cada arquivo
+- Estados inicial e final dos problemas
+- Cálculos de movimentos mínimos
+- Erros e avisos
+
+## Tratamento de Erros
+
+O sistema inclui tratamento robusto de erros:
+- Validação de pré-requisitos antes da execução
+- Verificação de existência de arquivos e pastas
+- Validação de formatos de arquivo
+- Verificação de estados válidos
+- Tratamento de dados ausentes
+- Logs de erro detalhados
+- Interrupção automática em caso de falha
+
+## Exemplo de Uso Completo
+
 ```bash
-pip install pandas numpy
+# 1. Colocar arquivos CSV na pasta dados_originais/
+# 2. Executar pipeline completo
+python run_pipeline.py
+
+# Saída esperada:
+# ============================================================
+# INICIANDO PIPELINE DE PROCESSAMENTO TOL
+# ============================================================
+# Verificando pré-requisitos...
+# ✓ Encontrados 45 arquivos CSV na pasta 'dados_originais'
+# ✓ Todos os scripts necessários estão presentes
+# ✓ Pré-requisitos atendidos
+# 
+# --- ETAPA 1/4 ---
+# Executando: Processamento de dados originais e cálculo de pontuações
+# ✓ Processamento de dados originais e cálculo de pontuações - Concluído com sucesso
+# 
+# --- ETAPA 2/4 ---
+# Executando: Combinação de dados por usuário
+# ✓ Combinação de dados por usuário - Concluído com sucesso
+# 
+# --- ETAPA 3/4 ---
+# Executando: Análise de dados combinados
+# ✓ Análise de dados combinados - Concluído com sucesso
+# 
+# --- ETAPA 4/4 ---
+# Executando: Análise de resultados individuais
+# ✓ Análise de resultados individuais - Concluído com sucesso
+# 
+# ============================================================
+# RESUMO DA EXECUÇÃO
+# ============================================================
+# Etapas executadas com sucesso: 4/4
+# Tempo total de execução: 45.32 segundos
+# ✓ PIPELINE CONCLUÍDO COM SUCESSO!
 ```
 
-### Ordem de Execução
-1. **Processar dados brutos**:
-   ```bash
-   python process_all_files.py
-   ```
+## Arquivos Gerados
 
-2. **Combinar dados por participante**:
-   ```bash
-   python combine_user_data.py
-   ```
+Após a execução bem-sucedida, você terá:
 
-3. **Analisar resultados individuais**:
-   ```bash
-   python analyze_outcomes.py
-   ```
-
-4. **Analisar dados combinados**:
-   ```bash
-   python analyze_combined_data.py
-   ```
-
-### Execução Completa
-```bash
-python process_all_files.py && python combine_user_data.py && python analyze_outcomes.py && python analyze_combined_data.py
-```
-
-## Estrutura de Pastas
-
-```
-test-tol/
-├── dados_originais/          # Arquivos CSV brutos do PEBL
-├── resultados_processados/    # Dados enriquecidos com métricas
-├── dados_combinados/         # Dados dos três testes combinados
-├── analises_resultados/      # Análises individuais por teste
-├── analises_combinadas/      # Análises dos dados combinados
-├── Documentação/             # Documentação do projeto
-├── process_all_files.py      # Script de processamento principal
-├── combine_user_data.py      # Script de combinação de dados
-├── analyze_outcomes.py       # Script de análise individual
-├── analyze_combined_data.py  # Script de análise combinada
-└── README.md                 # Este arquivo
-```
+- **01_dados_processados/** - Dados processados com pontuações calculadas
+- **02_dados_combinados/** - Dados combinados por usuário (T0, T1, T2)
+- **03_analises_combinadas/** - Análises dos dados combinados
+- **resultados_anova_medidas_repetidas.xlsx** - Análise estatística ANOVA
+- **pipeline_execution.log** - Log detalhado da execução
 
 ## Algoritmo de Busca de Movimentos Mínimos
 
@@ -154,6 +246,16 @@ O sistema implementa um algoritmo de busca em largura (BFS) para encontrar o nú
 3. **Busca em Largura**: Explora todos os estados possíveis nível por nível
 4. **Critério de Parada**: Encontra o estado objetivo ou atinge limite de movimentos
 5. **Validação**: Verifica restrições de altura máxima dos pinos
+
+## Notas Técnicas
+
+- O algoritmo de movimentos mínimos usa busca em largura (BFS)
+- Estados são normalizados para ter exatamente 3 pinos
+- Pontuação máxima é 10, reduzida por movimentos extras
+- Timeout de 1000 movimentos para evitar loops infinitos
+- Suporte a diferentes tamanhos de problemas (altura máxima configurável)
+- Timeout de 5 minutos por script para evitar travamentos
+- Execução sequencial com interrupção automática em caso de falha
 
 ## Aplicações
 

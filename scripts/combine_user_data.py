@@ -180,11 +180,11 @@ def get_column_descriptions(columns):
 
 def main():
     # Criar pasta para os arquivos combinados
-    output_folder = "dados_combinados"
+    output_folder = "02_dados_combinados"
     Path(output_folder).mkdir(exist_ok=True)
     
     # Pasta com os arquivos processados
-    input_folder = "resultados_processados"
+    input_folder = "01_dados_processados"
     
     # Verificar se a pasta existe
     if not os.path.exists(input_folder):
@@ -248,4 +248,4 @@ def main():
     logging.info("Processamento concluído!")
 
 if __name__ == "__main__":
-    main() 
+    main()
