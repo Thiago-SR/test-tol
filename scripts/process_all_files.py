@@ -249,7 +249,7 @@ def main():
     """Função principal que processa todos os arquivos CSV."""
     
     # Criar pasta de resultados se não existir
-    pasta_resultados = "resultados_processados"
+    pasta_resultados = "01_dados_processados"
     Path(pasta_resultados).mkdir(exist_ok=True)
     
     # pasta de dados originais
@@ -282,4 +282,4 @@ def main():
     logging.info(f"Processamento concluído! Resultados salvos na pasta '{pasta_resultados}'")
 
 if __name__ == "__main__":
-    main() 
+    main()
