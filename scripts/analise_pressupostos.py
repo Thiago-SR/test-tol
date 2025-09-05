@@ -230,16 +230,33 @@ def testar_esfericidade_eficiencia(df, id_column):
         if len(anova_df) == 0:
             return {'Erro': 'Sem dados válidos'}
         
+        # Verificar se temos dados suficientes para cada tempo
+        tempos_unicos = anova_df['time'].unique()
+        if len(tempos_unicos) < 3:
+            return {'Erro': f'Apenas {len(tempos_unicos)} tempos encontrados. Necessário 3.'}
+        
+        # Verificar se cada participante tem dados para todos os tempos
+        participantes_por_tempo = anova_df.groupby('time')['participant'].nunique()
+        if participantes_por_tempo.min() < 3:
+            return {'Erro': f'Mínimo de participantes insuficiente: {participantes_por_tempo.min()}'}
+        
+        # Verificar variabilidade
+        if anova_df['value'].std() == 0:
+            return {'Erro': 'Sem variabilidade nos dados'}
+        
         # Teste de esfericidade
         sphericity = pg.sphericity(anova_df, dv='value', within='time', subject='participant')
         
+        # CORREÇÃO: SpherResults é um objeto com atributos diretos, não um DataFrame
+        # O objeto SpherResults não tem atributo 'eps', então usamos valores padrão
         return {
-            'Mauchly_W': sphericity['W'][0],
-            'Mauchly_p': sphericity['pval'][0],
-            'Esferico': 'Sim' if sphericity['pval'][0] > 0.05 else 'Não',
-            'Correcao_GG': sphericity['eps'][0],  # Greenhouse-Geisser
-            'Correcao_HF': sphericity['eps'][1]   # Huynh-Feldt
+            'Mauchly_W': sphericity.W,
+            'Mauchly_p': sphericity.pval,
+            'Esferico': 'Sim' if sphericity.pval > 0.05 else 'Não',
+            'Correcao_GG': 'N/A',  # Não disponível diretamente no SpherResults
+            'Correcao_HF': 'N/A'   # Não disponível diretamente no SpherResults
         }
+            
     except Exception as e:
         return {
             'Mauchly_W': np.nan,
@@ -296,24 +313,194 @@ def comparacoes_post_hoc_eficiencia(df, id_column):
         if len(anova_df) == 0:
             return pd.DataFrame([{'Erro': 'Sem dados válidos'}])
         
-        # Comparações post-hoc com Bonferroni
-        posthoc = pg.pairwise_ttests(anova_df, dv='value', within='time', subject='participant', 
-                                   padjust='bonf')
+        print(f"DEBUG Post-hoc: Dados preparados - {len(anova_df)} observações")
+        print(f"DEBUG Post-hoc: Tempos únicos: {anova_df['time'].unique()}")
+        print(f"DEBUG Post-hoc: Participantes únicos: {anova_df['participant'].nunique()}")
         
-        # Organizar resultados
-        resultados = []
-        for _, row in posthoc.iterrows():
-            resultados.append({
-                'Comparacao': f"{row['A']} vs {row['B']}",
-                'T_statistic': row['T'],
-                'p_value': row['p-unc'],
-                'p_corrigido': row['p-corr'],
-                'Significativo': 'Sim' if row['p-corr'] < 0.05 else 'Não',
-                'Tamanho_efeito': row['cohen-d']
-            })
+        # Verificar se há dados suficientes para comparações
+        tempos_unicos = anova_df['time'].unique()
+        if len(tempos_unicos) < 2:
+            return pd.DataFrame([{'Erro': f'Apenas {len(tempos_unicos)} tempos encontrados. Necessário pelo menos 2.'}])
         
-        return pd.DataFrame(resultados)
+        # Tentar comparações post-hoc com pingouin primeiro
+        try:
+            posthoc = pg.pairwise_ttests(anova_df, dv='value', within='time', subject='participant', 
+                                       padjust='bonf')
+            
+            print(f"DEBUG Post-hoc: Resultado pairwise_ttests:")
+            print(f"DEBUG Post-hoc: Tipo: {type(posthoc)}")
+            print(f"DEBUG Post-hoc: Vazio: {posthoc.empty}")
+            if not posthoc.empty:
+                print(f"DEBUG Post-hoc: Colunas: {posthoc.columns.tolist()}")
+                print(f"DEBUG Post-hoc: Shape: {posthoc.shape}")
+                print(f"DEBUG Post-hoc: Primeiras linhas:\n{posthoc.head()}")
+            
+            # Verificar se o resultado tem as colunas esperadas
+            if not posthoc.empty and all(col in posthoc.columns for col in ['A', 'B', 'T', 'p-unc', 'p-corr']):
+                # Organizar resultados do pingouin
+                resultados = []
+                for _, row in posthoc.iterrows():
+                    # Usar 'hedges' se disponível, senão calcular manualmente
+                    tamanho_efeito = row.get('hedges', np.nan)
+                    if pd.isna(tamanho_efeito):
+                        # Calcular Cohen's d aproximado
+                        tamanho_efeito = row['T'] / np.sqrt(row['dof'] + 1)
+                    
+                    # Calcular diferença de médias e IC para cada comparação
+                    tempo1, tempo2 = row['A'], row['B']
+                    
+                    # Encontrar participantes comuns para cálculo correto
+                    participantes_tempo1 = anova_df[anova_df['time'] == tempo1]['participant'].values
+                    participantes_tempo2 = anova_df[anova_df['time'] == tempo2]['participant'].values
+                    participantes_comuns = np.intersect1d(participantes_tempo1, participantes_tempo2)
+                    
+                    if len(participantes_comuns) >= 3:
+                        # Reorganizar dados para participantes comuns
+                        dados1_comuns = []
+                        dados2_comuns = []
+                        for p in participantes_comuns:
+                            val1 = anova_df[(anova_df['time'] == tempo1) & (anova_df['participant'] == p)]['value'].iloc[0]
+                            val2 = anova_df[(anova_df['time'] == tempo2) & (anova_df['participant'] == p)]['value'].iloc[0]
+                            dados1_comuns.append(val1)
+                            dados2_comuns.append(val2)
+                        
+                        dados1_comuns = np.array(dados1_comuns)
+                        dados2_comuns = np.array(dados2_comuns)
+                        
+                        # Diferença de médias (T1 - T2)
+                        diff_medias = np.mean(dados1_comuns) - np.mean(dados2_comuns)
+                        
+                        # Intervalo de confiança para diferença de médias
+                        diff_individual = dados1_comuns - dados2_comuns
+                        n = len(diff_individual)
+                        se_diff = np.std(diff_individual, ddof=1) / np.sqrt(n)
+                        
+                        # IC 95% usando distribuição t
+                        from scipy.stats import t
+                        t_critico = t.ppf(0.975, df=n-1)  # 95% CI
+                        ic_inferior = diff_medias - t_critico * se_diff
+                        ic_superior = diff_medias + t_critico * se_diff
+                        
+                        print(f"DEBUG: {tempo1} vs {tempo2}")
+                        print(f"  Diferença de médias: {diff_medias:.3f}")
+                        print(f"  IC 95%: [{ic_inferior:.3f}, {ic_superior:.3f}]")
+                        print(f"  P-value: {row['p-corr']:.3f}")
+                    else:
+                        diff_medias = np.nan
+                        ic_inferior = np.nan
+                        ic_superior = np.nan
+                    
+                    resultados.append({
+                        'Comparacao': f"{row['A']} vs {row['B']}",
+                        'Diferenca_medias': diff_medias,
+                        'P_corrigido': row['p-corr'],
+                        'IC_inferior': ic_inferior,
+                        'IC_superior': ic_superior,
+                        'T_statistic': row['T'],
+                        'p_value': row['p-unc'],
+                        'Significativo': 'Sim' if row['p-corr'] < 0.05 else 'Não',
+                        'Tamanho_efeito': tamanho_efeito
+                    })
+                return pd.DataFrame(resultados)
+            else:
+                print("DEBUG Post-hoc: pingouin falhou, usando método manual")
+                raise Exception("pingouin pairwise_ttests falhou")
+                
+        except Exception as e:
+            print(f"DEBUG Post-hoc: pingouin falhou ({str(e)}), usando método manual")
+            
+            # Método manual usando scipy.stats
+            from scipy.stats import ttest_rel
+            
+            resultados = []
+            tempos = sorted(anova_df['time'].unique())
+            
+            # Fazer todas as comparações pareadas
+            for i in range(len(tempos)):
+                for j in range(i+1, len(tempos)):
+                    tempo1, tempo2 = tempos[i], tempos[j]
+                    
+                    # Obter dados para cada tempo
+                    dados_tempo1 = anova_df[anova_df['time'] == tempo1]['value'].values
+                    dados_tempo2 = anova_df[anova_df['time'] == tempo2]['value'].values
+                    
+                    # Garantir que temos os mesmos participantes
+                    participantes_tempo1 = anova_df[anova_df['time'] == tempo1]['participant'].values
+                    participantes_tempo2 = anova_df[anova_df['time'] == tempo2]['participant'].values
+                    
+                    # Encontrar participantes comuns
+                    participantes_comuns = np.intersect1d(participantes_tempo1, participantes_tempo2)
+                    
+                    if len(participantes_comuns) >= 3:  # Mínimo para t-test
+                        # Reorganizar dados para participantes comuns
+                        dados1_comuns = []
+                        dados2_comuns = []
+                        
+                        for p in participantes_comuns:
+                            val1 = anova_df[(anova_df['time'] == tempo1) & (anova_df['participant'] == p)]['value'].iloc[0]
+                            val2 = anova_df[(anova_df['time'] == tempo2) & (anova_df['participant'] == p)]['value'].iloc[0]
+                            dados1_comuns.append(val1)
+                            dados2_comuns.append(val2)
+                        
+                        dados1_comuns = np.array(dados1_comuns)
+                        dados2_comuns = np.array(dados2_comuns)
+                        
+                        # T-test pareado
+                        t_stat, p_value = ttest_rel(dados1_comuns, dados2_comuns)
+                        
+                        # Diferença de médias
+                        diff_medias = np.mean(dados1_comuns) - np.mean(dados2_comuns)
+                        
+                        # Intervalo de confiança para diferença de médias
+                        diff_individual = dados1_comuns - dados2_comuns
+                        n = len(diff_individual)
+                        se_diff = np.std(diff_individual, ddof=1) / np.sqrt(n)
+                        
+                        # IC 95% usando distribuição t
+                        from scipy.stats import t
+                        t_critico = t.ppf(0.975, df=n-1)  # 95% CI
+                        ic_inferior = diff_medias - t_critico * se_diff
+                        ic_superior = diff_medias + t_critico * se_diff
+                        
+                        # Cohen's d para dados pareados (d_z) - mais preciso
+                        diff = dados1_comuns - dados2_comuns
+                        
+                        # Verificar se há missing values nas diferenças
+                        diff_validos = diff[~np.isnan(diff)]
+                        
+                        if len(diff_validos) > 1 and np.std(diff_validos, ddof=1) > 0:
+                            cohens_d = np.mean(diff_validos) / np.std(diff_validos, ddof=1)
+                            print(f"  Cohen's d (d_z): {cohens_d:.3f}")
+                        else:
+                            cohens_d = 0
+                            print(f"  Cohen's d: não calculável (variância zero ou dados insuficientes)")
+                        
+                        # Correção de Bonferroni (número de comparações)
+                        num_comparacoes = len(tempos) * (len(tempos) - 1) // 2
+                        p_corrigido = min(p_value * num_comparacoes, 1.0)
+                        
+                        print(f"  Diferença de médias: {diff_medias:.3f}")
+                        print(f"  IC 95%: [{ic_inferior:.3f}, {ic_superior:.3f}]")
+                        print(f"  P-value corrigido: {p_corrigido:.3f}")
+                        
+                        resultados.append({
+                            'Comparacao': f"{tempo1} vs {tempo2}",
+                            'Diferenca_medias': diff_medias,
+                            'P_corrigido': p_corrigido,
+                            'IC_inferior': ic_inferior,
+                            'IC_superior': ic_superior,
+                            'T_statistic': t_stat,
+                            'p_value': p_value,
+                            'Significativo': 'Sim' if p_corrigido < 0.05 else 'Não',
+                            'Tamanho_efeito': cohens_d
+                        })
+            
+            if resultados:
+                return pd.DataFrame(resultados)
+            else:
+                return pd.DataFrame([{'Erro': 'Não foi possível realizar comparações manuais'}])
     except Exception as e:
+        print(f"DEBUG Post-hoc: Exceção capturada: {str(e)}")
         return pd.DataFrame([{'Erro': str(e)}])
 
 def anova_eficiencia(df, id_column):
@@ -484,8 +671,8 @@ def analise_eficiencia_completa(csv_path, output_path=None, criar_graficos=True)
     esfericidade = testar_esfericidade_eficiencia(df, id_column)
     if 'Erro' not in esfericidade:
         print(f"   Esfericidade: p = {esfericidade['Mauchly_p']:.4f} ({esfericidade['Esferico']})")
-        print(f"   Correção GG: {esfericidade['Correcao_GG']:.3f}")
-        print(f"   Correção HF: {esfericidade['Correcao_HF']:.3f}")
+        print(f"   Correção GG: {esfericidade['Correcao_GG']}")
+        print(f"   Correção HF: {esfericidade['Correcao_HF']}")
     else:
         print(f"   ERRO: {esfericidade['Erro']}")
     
@@ -495,7 +682,11 @@ def analise_eficiencia_completa(csv_path, output_path=None, criar_graficos=True)
     if not posthoc.empty and 'Comparacao' in posthoc.columns:
         print("   Comparações post-hoc:")
         for _, row in posthoc.iterrows():
-            print(f"     {row['Comparacao']}: p = {row['p_corrigido']:.4f} ({row['Significativo']})")
+            print(f"     {row['Comparacao']}:")
+            print(f"       Diferença de médias: {row['Diferenca_medias']:.3f}")
+            print(f"       P-value corrigido: {row['P_corrigido']:.3f}")
+            print(f"       IC 95%: [{row['IC_inferior']:.3f}, {row['IC_superior']:.3f}]")
+            print(f"       Significativo: {row['Significativo']}")
             print(f"       Tamanho de efeito (Cohen's d) = {row['Tamanho_efeito']:.3f}")
     else:
         print("   AVISO: Não foi possível realizar comparações post-hoc")
