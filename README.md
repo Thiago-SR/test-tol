@@ -4,7 +4,7 @@
 
 Este projeto implementa um sistema completo de processamento e análise de dados de testes cognitivos baseados no paradigma da Torre de Londres (Tower of London - ToL). O sistema processa dados brutos de testes PEBL (Psychology Experiment Building Language) e gera análises estatísticas detalhadas para avaliação de funções executivas.
 
-## Nova Estrutura Organizada
+## Estrutura Organizada
 
 O projeto foi reorganizado para melhor manutenibilidade e execução:
 
