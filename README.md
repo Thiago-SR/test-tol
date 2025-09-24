@@ -23,6 +23,8 @@ test-tol/
 └── README.md
 ```
 
+Nota: as pastas de entrada e saída (dados_originais, 01_dados_processados, 02_dados_combinados, 03_analises_combinadas) são geradas durante a execução e não são versionadas (ignoradas no .gitignore).
+
 ## Como Usar
 
 ### Execução Automática (Recomendado)
@@ -68,7 +70,7 @@ python scripts/combine_user_data.py
 python scripts/analyze_combined_data.py
 ```
 
-#### 4. Análise Estatística ANOVA
+#### 5. Análise Estatística ANOVA
 
 ```bash
 python scripts/anova.py
@@ -81,7 +83,7 @@ python scripts/anova.py
 - **Funcionalidades**:
   - Calcula o número mínimo de movimentos necessários para resolver cada puzzle
   - Implementa algoritmo de busca em largura (BFS) para encontrar solução ótima
-  - Calcula pontuação baseada na eficiência dos movimentos
+  - Calula pontuação baseada na eficiência dos movimentos
   - Adiciona colunas de análise: `movimentos_minimos` e `pontuacao_acumulada`
 - **Algoritmo**: Utiliza busca em largura para encontrar o caminho mais curto entre estados iniciais e finais
 - **Saída**: Arquivos processados na pasta `01_dados_processados/`
@@ -112,6 +114,19 @@ python scripts/anova.py
   - Gera relatório em Excel com resultados detalhados
 - **Dependências**: pandas, pingouin, numpy, openpyxl
 - **Saída**: Arquivo Excel `resultados_anova_medidas_repetidas.xlsx`
+
+### 5. Análise de Pressupostos e Post-hoc (`scripts/analise_pressupostos.py`)
+- **Objetivo**: Verificar pressupostos e realizar análises adicionais para a variável de eficiência dos movimentos
+- **Funcionalidades**:
+  - Teste de normalidade (Shapiro-Wilk) por tempo (T0, T1, T2)
+  - Detecção de outliers (IQR e Z-score) e boxplots
+  - ANOVA de medidas repetidas (p-valor, F, η² parcial)
+  - Teste de esfericidade de Mauchly (W, p)
+  - Comparações post-hoc pareadas com correção de Bonferroni
+  - Relato de diferença de médias, IC 95% e tamanho de efeito (Cohen’s d para dados pareados – d_z)
+- **Saídas**:
+  - Planilha de resultados detalhados (quando acionado pelo pipeline)
+  - Gráficos em `graficos_eficiencia/` ou `graficos_pressupostos/` (não versionados)
 
 ## Métricas Calculadas
 
