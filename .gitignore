@@ -1,0 +1,23 @@
+# Ignore everything by default
+/*
+
+# Keep this file
+!.gitignore
+
+# Keep scripts directory and its contents
+!/scripts/
+/scripts/**
+
+# Keep root run_pipeline.py and README.md
+!/run_pipeline.py
+!/README.md
+
+# Still ignore caches or temporary files inside scripts
+/scripts/**/__pycache__/
+/scripts/**/.ipynb_checkpoints/
+/scripts/**/.pytest_cache/
+/scripts/**/*.py[cod]
+/scripts/**/*$py.class
+/scripts/**/.mypy_cache/
+/scripts/**/.DS_Store
+/scripts/**/Thumbs.db
