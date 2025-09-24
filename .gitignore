@@ -4,15 +4,15 @@
 # Keep this file
 !.gitignore
 
-# Keep scripts directory and its contents
+# Keep scripts directory and all its files
 !/scripts/
-/scripts/**
+!/scripts/**
 
 # Keep root run_pipeline.py and README.md
 !/run_pipeline.py
 !/README.md
 
-# Still ignore caches or temporary files inside scripts
+# Ignore caches or temporary files inside scripts
 /scripts/**/__pycache__/
 /scripts/**/.ipynb_checkpoints/
 /scripts/**/.pytest_cache/
